@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/.github/" />
+  <Folder Name="/.github/workflows/">
+    <File Path=".github/workflows/publish.yml" />
+  </Folder>
+  <Folder Name="/Элементы решения/">
+    <File Path="DigitTwin.png" />
+    <File Path="LICENSE.md" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="DT.Application/DT.Application.csproj" />
+</Solution>
