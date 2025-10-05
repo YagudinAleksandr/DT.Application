@@ -3,151 +3,58 @@
 namespace DT.Application.Result
 {
     /// <summary>
-    /// Представляет результат операции: успех или ошибка.
-    /// Используется для управления потоком выполнения без исключений.
+    /// Представляет результат операции без возвращаемого значения (аналог void).
+    /// Может находиться в состоянии успеха (<see cref="IsSuccess"/>) или неудачи (<see cref="IsFailure"/>).
+    /// В случае неудачи содержит информацию об ошибке через свойство <see cref="Error"/>.
+    /// Реализован как неизменяемая структура для эффективности и безопасности.
     /// </summary>
-    public class Result
+    public readonly struct Result
     {
         /// <summary>
-        /// Указывает, что операция завершилась успешно.
+        /// Ошибка
         /// </summary>
-        public bool IsSuccess { get; private set; }
+        private readonly Error? _error;
 
         /// <summary>
-        /// Указывает, что операция завершилась с ошибкой.
+        /// Статус успешного выполнения
         /// </summary>
-        public bool IsFailure => !IsSuccess;
+        public bool IsSuccess => _error is null;
 
         /// <summary>
-        /// Описание ошибки, если операция не удалась.
-        /// При успехе содержит <see cref="Error.None"/>.
+        /// Статус неудачного выполнения
         /// </summary>
-        public Error Error { get; private set; } = null!;
+        public bool IsFailure => _error != null;
 
         /// <summary>
-        /// Инициализирует новый экземпляр результата.
+        /// Ошибка
         /// </summary>
-        /// <param name="isSuccess">Признак успешного выполнения.</param>
-        /// <param name="error">Ошибка, если операция не удалась; должна быть <see cref="Error.None"/> при успехе.</param>
-        /// <exception cref="InvalidOperationException">
-        /// Выбрасывается, если результат помечен как успех, но передана ошибка, 
-        /// или как ошибка, но ошибка не указана.
-        /// </exception>
-        protected Result(bool isSuccess, Error error)
+        public Error Error => _error ?? throw new InvalidOperationException("No error in success result.");
+
+        /// <summary>
+        /// Результат
+        /// </summary>
+        /// <param name="error">Ошибка</param>
+        private Result(Error? error)
         {
-            if (isSuccess && !error.IsNone)
-                throw new InvalidOperationException("Результат с успехом не может содержать ошибку.");
-            if (!isSuccess && error.IsNone)
-                throw new InvalidOperationException("Результат с ошибкой должен содержать описание ошибки.");
-
-            IsSuccess = isSuccess;
-            Error = error;
+            _error = error;
         }
 
         /// <summary>
-        /// Создаёт успешный результат.
+        /// Успешный результат
         /// </summary>
-        /// <returns>Успешный результат без значения.</returns>
-        public static Result Success() => new SuccessResult();
+        /// <returns><see cref="Result"/></returns>
+        public static Result Success() => new Result(null);
 
         /// <summary>
-        /// Создаёт результат с ошибкой.
+        /// Не успешное выполнение
         /// </summary>
-        /// <param name="error">Описание ошибки.</param>
-        /// <returns>Результат с ошибкой.</returns>
-        public static Result Failure(Error error) => new FailureResult(error);
+        /// <param name="error">Ошибка</param>
+        /// <returns><see cref="Result"/></returns>
+        public static Result Failure(Error error) => new Result(error);
 
-        /// <summary>
-        /// Внутренний тип: успешный результат.
-        /// </summary>
-        private sealed class SuccessResult : Result
-        {
-            /// <summary>
-            /// Инициализирует успешный результат.
-            /// </summary>
-            public SuccessResult() : base(true, Error.None) { }
-        }
+        public static Result Failure(string code, string message, ErrorTypeEnum type = ErrorTypeEnum.Failure)
+            => Failure(new Error(code, message, type));
 
-        /// <summary>
-        /// Внутренний тип: результат с ошибкой.
-        /// </summary>
-        private sealed class FailureResult : Result
-        {
-            /// <summary>
-            /// Инициализирует результат с ошибкой.
-            /// </summary>
-            /// <param name="error">Описание ошибки.</param>
-            public FailureResult(Error error) : base(false, error) { }
-        }
-    }
-
-    /// <summary>
-    /// Представляет результат операции, возвращающей значение типа <typeparamref name="T"/>.
-    /// </summary>
-    /// <typeparam name="T">Тип возвращаемого значения.</typeparam>
-    public class Result<T> : Result
-    {
-        private readonly T _value;
-
-        /// <summary>
-        /// Инициализирует новый экземпляр результата с значением.
-        /// </summary>
-        /// <param name="isSuccess">Признак успеха.</param>
-        /// <param name="value">Возвращаемое значение (может быть null).</param>
-        /// <param name="error">Ошибка, если операция не удалась.</param>
-        protected Result(bool isSuccess, T value, Error error) : base(isSuccess, error)
-        {
-            _value = value;
-        }
-
-        /// <summary>
-        /// Возвращает значение результата, если операция прошла успешно.
-        /// </summary>
-        /// <exception cref="InvalidOperationException">
-        /// Выбрасывается при попытке получить значение из неуспешного результата.
-        /// </exception>
-        public T Value => IsSuccess
-            ? _value!
-            : throw new InvalidOperationException("Нельзя получить значение из неуспешного результата.");
-
-        /// <summary>
-        /// Создаёт успешный результат с указанным значением.
-        /// </summary>
-        /// <param name="value">Возвращаемое значение.</param>
-        /// <returns>Успешный результат с значением.</returns>
-        public static Result<T> Success(T value) => new SuccessResult<T>(value);
-
-        /// <summary>
-        /// Создаёт результат с ошибкой.
-        /// </summary>
-        /// <param name="error">Описание ошибки.</param>
-        /// <returns>Результат с ошибкой.</returns>
-        public static Result<T> Failure(Error error) => new FailureResult<T>(error);
-
-        /// <summary>
-        /// Внутренний тип: успешный результат с значением.
-        /// </summary>
-        /// <typeparam name="TValue">Тип значения.</typeparam>
-        private sealed class SuccessResult<TValue> : Result<TValue>
-        {
-            /// <summary>
-            /// Инициализирует успешный результат с значением.
-            /// </summary>
-            /// <param name="value">Значение результата.</param>
-            public SuccessResult(TValue value) : base(true, value, Error.None) { }
-    }
-
-        /// <summary>
-        /// Внутренний тип: результат с ошибкой.
-        /// </summary>
-        /// <typeparam name="TValue">Тип значения.</typeparam>
-        private sealed class FailureResult<TValue> : Result<TValue>
-        {
-            /// <summary>
-            /// Инициализирует результат с ошибкой.
-            /// </summary>
-            /// <param name="error">Описание ошибки.</param>
-            public FailureResult(Error error) : base(false, default, error) { }
-        }
+        public static implicit operator Result(Error error) => Failure(error);
     }
 }

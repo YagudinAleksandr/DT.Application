@@ -2,11 +2,12 @@
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.1</TargetFramework>
+		<LangVersion>9.0</LangVersion>
 		<Nullable>enable</Nullable>
 		<!-- Генерация XML-документации -->
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);1591</NoWarn>
-		<Version>0.1.0</Version>
+		<Version>0.2.0</Version>
 
 		<Authors>Aleksandr Yagudin</Authors>
 		<Description>Common files for application. Pattern ResultT.</Description>

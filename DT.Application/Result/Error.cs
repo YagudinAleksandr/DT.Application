@@ -1,9 +1,13 @@
-﻿namespace DT.Application.Result
+﻿using System;
+
+namespace DT.Application.Result
 {
     /// <summary>
-    /// Обхект ошибки
+    /// Представляет неизменяемую ошибку с уникальным кодом, описанием и типом.
+    /// Код ошибки предназначен для программной обработки и локализации сообщений.
+    /// Поддерживает неявное преобразование из кортежей для удобного создания.
     /// </summary>
-    public class Error
+    public readonly struct Error : IEquatable<Error>
     {
         /// <summary>
         /// Код ошибки
@@ -11,29 +15,50 @@
         public string Code { get; }
 
         /// <summary>
-        /// Параметры
+        /// Сообщение об ошибке
         /// </summary>
-        public object[]? Parameters { get; }
+        public string Message { get; }
 
         /// <summary>
-        /// Представляет отсутствие ошибки.
+        /// Тип ошибки
         /// </summary>
-        public static readonly Error None = new Error(string.Empty);
+        public ErrorTypeEnum Type { get; }
 
         /// <summary>
-        /// Указывает, что ошибка отсутствует.
+        /// Ошибка
         /// </summary>
-        public bool IsNone => this == None;
-
-        /// <summary>
-        /// Указывает, что у ошибки есть параметры для подстановки.
-        /// </summary>
-        public bool HasParameters => Parameters != null && Parameters.Length > 0;
-        public Error(string code, object[]? parameters = null)
+        /// <param name="code">Код ошибки</param>
+        /// <param name="message">Сообщение</param>
+        /// <param name="type">Тип</param>
+        /// <exception cref="ArgumentNullException"></exception>
+        public Error(string code, string message, ErrorTypeEnum type = ErrorTypeEnum.Failure)
         {
-            Code = code;
-            Parameters = parameters;
+            Code = code ?? throw new ArgumentNullException(nameof(code));
+            Message = message ?? throw new ArgumentNullException(nameof(message));
+            Type = type;
         }
 
+        /// <summary>
+        /// Равенство
+        /// </summary>
+        /// <param name="other">Объект для сравнения</param>
+        /// <returns>true - равны, false - не равны</returns>
+        public bool Equals(Error other) => Code == other.Code;
+
+        /// <inheritdoc/>
+        public override bool Equals(object? obj) => obj is Error other && Equals(other);
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => Code.GetHashCode(StringComparison.Ordinal);
+
+        /// <inheritdoc/>
+        public override string ToString() => $"{Type}: {Code} - {Message}";
+
+
+        public static implicit operator Error((string Code, string Message, ErrorTypeEnum Type) tuple)
+            => new Error(tuple.Code, tuple.Message, tuple.Type);
+
+        public static implicit operator Error((string Code, string Message) tuple)
+            => new Error(tuple.Code, tuple.Message, ErrorTypeEnum.Failure);
     }
 }
