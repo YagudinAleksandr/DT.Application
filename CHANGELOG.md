@@ -1,8 +1,13 @@
 ﻿# CHANGELOG
 
+## [1.1.0] (https://github.com/YagudinAleksandr/DT.Application/tree/1.1.0) - 13.10.2025
+
+### Added
+- [Добавлена фильтрация и сортировка](https://github.com/YagudinAleksandr/DT.Application/commit/dd58962c0e590331c6fa830ad60a1865645b1da2)
+
 ## [1.0.0](https://github.com/YagudinAleksandr/DT.Application/tree/1.0.0) - 11.10.2025
 
-## Added
+### Added
 - [Исправлен паттерн паттерн Result для поддержки множественных ошибок](https://github.com/YagudinAleksandr/DT.Application/commit/fcf27258048663fbd0f00dceae69e429ba9805f7)
 - Релизная версия библиотеки
 - Добавлен файл CHANGELOG.md
