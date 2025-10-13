@@ -1,6 +1,6 @@
 ﻿# CHANGELOG
 
-## [1.1.0] (https://github.com/YagudinAleksandr/DT.Application/tree/1.1.0) - 13.10.2025
+## [1.1.0](https://github.com/YagudinAleksandr/DT.Application/tree/1.1.0) - 13.10.2025
 
 ### Added
 - [Добавлена фильтрация и сортировка](https://github.com/YagudinAleksandr/DT.Application/commit/dd58962c0e590331c6fa830ad60a1865645b1da2)
