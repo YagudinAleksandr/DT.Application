@@ -7,7 +7,7 @@
 		<!-- Генерация XML-документации -->
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);1591</NoWarn>
-		<Version>1.1.0</Version>
+		<Version>1.2.0</Version>
 
 		<Authors>Aleksandr Yagudin</Authors>
 		<Description>Common files for application. Pattern ResultT.</Description>
@@ -16,7 +16,7 @@
 		<RepositoryUrl>https://github.com/YagudinAleksandr/DT.Application</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>ddd;result;application-assembly;</PackageTags>
-		<PackageReleaseNotes>Add filters to library and sorting extensions</PackageReleaseNotes>
+		<PackageReleaseNotes>Add service to start in background all services</PackageReleaseNotes>
 		<Copyright>Copyright 2025 Aleksandr Yagudin</Copyright>
 		<NeutralLanguage>ru</NeutralLanguage>
 

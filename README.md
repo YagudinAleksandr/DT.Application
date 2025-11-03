@@ -38,6 +38,7 @@ dotnet add package DT.Application
     - [ResultExtensions](#resultextensions)
     - [PagedResult\<T\>](#pagedresultt)
     - [Система фильтрации и сортировки](#система-фильтрации-и-сортировки)
+    - [Сервис для старта в фоновом режиме сервисов](#сервис-для-старта-в-фоновом-режиме-сервисов)
   - [Примеры использования](#примеры-использования)
     - [Валидация данных](#валидация-данных)
     - [Работа с базой данных](#работа-с-базой-данных)
@@ -209,6 +210,45 @@ var allowedFields = new Dictionary<string, string>
 
 var sortDescriptors = SortExtensions.ParseSortParameters(allowedFields, filter.Sort);
 var sortedUsers = users.ApplySorting(sortDescriptors);
+```
+
+### Сервис для старта в фоновом режиме сервисов
+```csharp
+public class TestService : IStartupRunnerService
+{
+    public async Task ExecuteAsync(CancellationToken ct = default)
+    {
+        await Task.ComplitedTask();
+    }
+}
+```
+
+Создать HostedService
+```csharp
+public class StartupRunnerHostedService : IHostedService
+{
+    private readonly IEnumerable<IStartupRunnerService> _startupServices;
+
+    public StartupRunnerHostedService(IEnumerable<IStartupRunnerService> startupServices)
+    {
+        _startupServices = startupServices;
+    }
+
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        foreach (var service in _startupServices)
+        {
+            await service.ExecuteAsync(cancellationToken);
+        }
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+}
+```
+
+Зарегистрировать в DI
+```chsrp
+builder.Services.AddHostedService<StartupRunnerHostedService>();
 ```
 
 ## Примеры использования
