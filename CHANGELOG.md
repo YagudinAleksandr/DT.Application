@@ -1,6 +1,11 @@
 ﻿# CHANGELOG
 
-## [1.2.0](https://github.com/YagudinAleksandr/DT.Application/tree/1.1.0) - 03.11.2025
+## [1.2.1](https://github.com/YagudinAleksandr/DT.Application/tree/1.2.1) - 11.11.2025
+
+### Fixed
+- [Исправлена сортировка. Поддержка OwnedTypes](https://github.com/YagudinAleksandr/DT.Application/commit/1981791930a171f946254b702427771186277543)
+
+## [1.2.0](https://github.com/YagudinAleksandr/DT.Application/tree/1.2.0) - 03.11.2025
 
 ### Added
 - [Добавлен сервис для фонового запуска сервисов](https://github.com/YagudinAleksandr/DT.Application/commit/3ea3e257ed1e560809f38184ebdc75bea3070377)
