@@ -1,6 +1,10 @@
 ﻿# CHANGELOG
 
-## [1.2.0](https://github.com/YagudinAleksandr/DT.Application/tree/1.1.0) - 03.11.2025
+## [1.2.1](https://github.com/YagudinAleksandr/DT.Application/tree/1.2.1) - 07.12.2025
+- [Добавлена фабрика результатов ответа]()
+
+
+## [1.2.0](https://github.com/YagudinAleksandr/DT.Application/tree/1.2.0) - 03.11.2025
 
 ### Added
 - [Добавлен сервис для фонового запуска сервисов](https://github.com/YagudinAleksandr/DT.Application/commit/3ea3e257ed1e560809f38184ebdc75bea3070377)

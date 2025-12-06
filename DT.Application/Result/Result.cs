@@ -10,7 +10,7 @@ namespace DT.Application.Result
     /// В случае неудачи может содержать одну или несколько ошибок через свойство <see cref="Errors"/>.
     /// Реализован как неизменяемая структура для эффективности и потокобезопасности.
     /// </summary>
-    public readonly struct Result
+    public readonly struct Result : IResult
     {
         private readonly List<Error>? _errors;
 

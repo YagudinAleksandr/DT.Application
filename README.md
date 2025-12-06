@@ -37,6 +37,7 @@ dotnet add package DT.Application
     - [Result\<T\>](#resultt)
     - [ResultExtensions](#resultextensions)
     - [PagedResult\<T\>](#pagedresultt)
+    - [ResultFactory](#resultfactory)
     - [Система фильтрации и сортировки](#система-фильтрации-и-сортировки)
     - [Сервис для старта в фоновом режиме сервисов](#сервис-для-старта-в-фоновом-режиме-сервисов)
   - [Примеры использования](#примеры-использования)
@@ -210,6 +211,49 @@ var allowedFields = new Dictionary<string, string>
 
 var sortDescriptors = SortExtensions.ParseSortParameters(allowedFields, filter.Sort);
 var sortedUsers = users.ApplySorting(sortDescriptors);
+```
+### ResultFactory
+```csharp
+public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : notnull
+    where TResponse : class, IResult
+{
+    private readonly IEnumerable<IValidator<TRequest>> _validators;
+
+    public ValidationBehavior(IEnumerable<IValidator<TRequest>> validators)
+    {
+        _validators = validators;
+    }
+
+    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
+    {
+        if (!_validators.Any())
+            return await next();
+
+        var context = new ValidationContext<TRequest>(request);
+        var validationResults = await Task.WhenAll(
+            _validators.Select(v => v.ValidateAsync(context, ct))
+        );
+
+        var failures = validationResults
+            .Where(r => !r.IsValid)
+            .SelectMany(r => r.Errors)
+            .ToList();
+
+        if (failures.Any())
+        {
+            var errors = failures.Select(failure => new Error(
+                failure.ErrorCode ?? "Validation",
+                failure.ErrorMessage ?? "Ошибка валидации"
+            )).ToArray();
+
+            // Создаём Result.Failure через рефлексию или фабрику
+            return ResultFactory.CreateFailure<TResponse>(errors);
+        }
+
+        return await next();
+    }
+}
 ```
 
 ### Сервис для старта в фоновом режиме сервисов
