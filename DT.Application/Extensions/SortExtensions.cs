@@ -52,10 +52,17 @@ namespace DT.Application.Extensions
 
             foreach (var desc in sortDescriptors)
             {
-                var property = type.GetProperty(desc.PropertyName)
-                    ?? throw new InvalidOperationException($"Свойство {desc.PropertyName} не найдено в типе {type.Name}");
+                Expression propertyAccess = parameter;
+                // Разбиваем имя свойства по точке, чтобы поддерживать вложенные свойства
+                var parts = desc.PropertyName.Split('.');
+                foreach (var part in parts)
+                {
+                    var propInfo = propertyAccess.Type.GetProperty(part)
+                        ?? throw new InvalidOperationException($"Свойство '{part}' не найдено в типе '{propertyAccess.Type.Name}'");
 
-                var propertyAccess = Expression.MakeMemberAccess(parameter, property);
+                    propertyAccess = Expression.MakeMemberAccess(propertyAccess, propInfo);
+                }
+
                 var lambda = Expression.Lambda(propertyAccess, parameter);
 
                 string methodName;
@@ -72,7 +79,7 @@ namespace DT.Application.Extensions
                 var method = typeof(Queryable)
                     .GetMethods()
                     .First(m => m.Name == methodName && m.GetParameters().Length == 2)
-                    .MakeGenericMethod(type, property.PropertyType);
+                    .MakeGenericMethod(type, propertyAccess.Type);
 
                 query = (IQueryable<T>)method.Invoke(null, new object[] { query, lambda })!;
             }
