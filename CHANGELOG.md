@@ -1,15 +1,12 @@
 ﻿# CHANGELOG
 
 ## [1.2.2](https://github.com/YagudinAleksandr/DT.Application/tree/1.2.2) - 07.12.2025
-- [Добавлена фабрика результатов ответа]()
+- [Добавлена фабрика результатов ответа](https://github.com/YagudinAleksandr/DT.Application/commit/007fb1c27b82d0a3381d7f216d288cca0e3ac71b)
 
 ## [1.2.1](https://github.com/YagudinAleksandr/DT.Application/tree/1.2.1) - 11.11.2025
 
 ### Fixed
 - [Исправлена сортировка. Поддержка OwnedTypes](https://github.com/YagudinAleksandr/DT.Application/commit/1981791930a171f946254b702427771186277543)
-
-## [1.2.0](https://github.com/YagudinAleksandr/DT.Application/tree/1.2.0) - 03.11.2025
-
 
 ## [1.2.0](https://github.com/YagudinAleksandr/DT.Application/tree/1.2.0) - 03.11.2025
 
