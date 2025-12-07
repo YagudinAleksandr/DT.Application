@@ -1,6 +1,13 @@
 ﻿# CHANGELOG
 
+## [1.2.3](https://github.com/YagudinAleksandr/DT.Application/tree/1.2.3) - 07.12.2025
+
+### Fixed
+- [Исправлен баг с фабрикой результата](https://github.com/YagudinAleksandr/DT.Application/commit/a96c35b8d2ff1b7a35bd15a2e8c59908014f646f)
+
 ## [1.2.2](https://github.com/YagudinAleksandr/DT.Application/tree/1.2.2) - 07.12.2025
+
+### Added
 - [Добавлена фабрика результатов ответа](https://github.com/YagudinAleksandr/DT.Application/commit/007fb1c27b82d0a3381d7f216d288cca0e3ac71b)
 
 ## [1.2.1](https://github.com/YagudinAleksandr/DT.Application/tree/1.2.1) - 11.11.2025
