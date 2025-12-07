@@ -16,7 +16,7 @@
 		<RepositoryUrl>https://github.com/YagudinAleksandr/DT.Application</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>ddd;result;application-assembly;</PackageTags>
-		<PackageReleaseNotes>Fixed result factory</PackageReleaseNotes>
+		<PackageReleaseNotes>Refactoring result factory</PackageReleaseNotes>
 		<Copyright>Copyright 2025 Aleksandr Yagudin</Copyright>
 		<NeutralLanguage>ru</NeutralLanguage>
 

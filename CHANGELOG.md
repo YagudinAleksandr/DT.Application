@@ -3,7 +3,7 @@
 ## [1.2.4](https://github.com/YagudinAleksandr/DT.Application/tree/1.2.5) - 07.12.2025
 
 ### Fixed
-- [Полная переработка фабрики Result]()
+- [Полная переработка фабрики Result](https://github.com/YagudinAleksandr/DT.Application/commit/d8ca095ec5ca22c8d5c19effef080c3c0bce8041)
 
 ## [1.2.4](https://github.com/YagudinAleksandr/DT.Application/tree/1.2.4) - 07.12.2025
 
