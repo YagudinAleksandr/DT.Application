@@ -11,7 +11,7 @@ namespace DT.Application.Result
     /// Поддерживает неявное преобразование из <see cref="Error"/> и в небинарный <see cref="Result"/>.
     /// </summary>
     /// <typeparam name="T">Тип возвращаемого значения (может быть как ссылочным, так и значимым типом).</typeparam>
-    public readonly struct Result<T>
+    public readonly struct Result<T> : IResult
     {
         private readonly T? _value;
         private readonly List<Error>? _errors;

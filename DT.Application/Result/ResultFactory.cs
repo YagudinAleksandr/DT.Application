@@ -15,7 +15,7 @@ namespace DT.Application.Result
         /// <param name="errors">Список ошибок</param>
         /// <returns>Ответ типа <typeparamref name="TResponse"/></returns>
         /// <exception cref="InvalidOperationException">Не поддерживаемый тип ответа</exception>
-        public static TResponse CreateFailure<TResponse>(Error[] errors) where TResponse : class, IResult
+        public static TResponse CreateFailure<TResponse>(Error[] errors) where TResponse : IResult
         {
             // Если TResponse — это Result (без значения)
             if (typeof(TResponse) == typeof(Result))
