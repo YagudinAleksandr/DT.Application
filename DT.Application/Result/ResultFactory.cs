@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Reflection;
 
 namespace DT.Application.Result
 {
@@ -22,21 +22,29 @@ namespace DT.Application.Result
             if (errors == null || errors.Length == 0)
                 throw new ArgumentException("Ошибки не могут быть пустыми.", nameof(errors));
 
+            // Случай: Result (без <T>)
             if (typeof(TResponse) == typeof(Result))
             {
                 return (TResponse)(object)Result.Failure(errors);
             }
 
+            // Случай: Result<T>
             if (typeof(TResponse).IsGenericType &&
                 typeof(TResponse).GetGenericTypeDefinition() == typeof(Result<>))
             {
-                var openType = typeof(Result<>);
-                var method = openType.GetMethod("Failure", new[] { typeof(IEnumerable<Error>) })
-                    ?? throw new InvalidOperationException("Метод Result<T>.Failure(IEnumerable<Error>) не найден.");
+                // Получаем метод Failure(IEnumerable<Error>) напрямую из TResponse (закрытого типа)
+                var method = typeof(TResponse).GetMethod(
+                    "Failure",
+                    BindingFlags.Public | BindingFlags.Static,
+                    binder: null,
+                    types: new[] { typeof(IEnumerable<Error>) },
+                    modifiers: null
+                );
 
-                var innerType = typeof(TResponse).GetGenericArguments()[0];
-                var closedMethod = method.MakeGenericMethod(innerType);
-                var result = closedMethod.Invoke(null, new object[] { errors });
+                if (method == null)
+                    throw new InvalidOperationException($"Метод Failure(IEnumerable<Error>) не найден в {typeof(TResponse)}.");
+
+                var result = method.Invoke(null, new object[] { errors });
                 return (TResponse)result!;
             }
 

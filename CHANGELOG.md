@@ -1,5 +1,10 @@
 ﻿# CHANGELOG
 
+## [1.2.4](https://github.com/YagudinAleksandr/DT.Application/tree/1.2.5) - 07.12.2025
+
+### Fixed
+- [Полная переработка фабрики Result]()
+
 ## [1.2.4](https://github.com/YagudinAleksandr/DT.Application/tree/1.2.4) - 07.12.2025
 
 ### Fixed
