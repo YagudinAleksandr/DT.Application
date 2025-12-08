@@ -6,23 +6,29 @@ namespace DT.Application.Result
 {
     /// <summary>
     /// Представляет результат операции с возвращаемым значением типа <typeparamref name="T"/>.
-    /// Может находиться в состоянии успеха (содержит значение) или неудачи (содержит одну или несколько ошибок).
-    /// Обеспечивает безопасный доступ к значению только в случае успеха.
-    /// Поддерживает неявное преобразование из <see cref="Error"/> и в небинарный <see cref="Result"/>.
+    /// Может быть успешным (содержит значение) или неуспешным (содержит ошибки).
+    /// Неизменяемая структура.
     /// </summary>
-    /// <typeparam name="T">Тип возвращаемого значения (может быть как ссылочным, так и значимым типом).</typeparam>
-    public readonly struct Result<T> : IResult
+    /// <typeparam name="T">Тип возвращаемого значения</typeparam>
+    public readonly struct Result<T>
     {
         private readonly T? _value;
-        private readonly List<Error>? _errors;
+        private readonly Error[] _errors;
+
+        private Result(T? value, Error[] errors)
+        {
+            _value = value;
+            _errors = errors;
+            IsSuccess = _errors.Length == 0;
+        }
 
         /// <summary>
-        /// Возвращает <see langword="true"/>, если операция завершилась успешно (ошибок нет).
+        /// Возвращает <see langword="true"/>, если операция завершилась успешно.
         /// </summary>
-        public bool IsSuccess => _errors == null || _errors.Count == 0;
+        public bool IsSuccess { get; }
 
         /// <summary>
-        /// Возвращает <see langword="true"/>, если операция завершилась неудачно (есть хотя бы одна ошибка).
+        /// Возвращает <see langword="true"/>, если операция завершилась с ошибкой.
         /// </summary>
         public bool IsFailure => !IsSuccess;
 
@@ -41,82 +47,39 @@ namespace DT.Application.Result
         }
 
         /// <summary>
-        /// Возвращает первую ошибку из списка.
-        /// Выбрасывает <see cref="InvalidOperationException"/>, если результат успешен.
-        /// Предназначен для обратной совместимости.
+        /// Возвращает список всех ошибок. Никогда не возвращает <see langword="null"/>.
         /// </summary>
-        public Error Error
-        {
-            get
-            {
-                if (IsSuccess)
-                    throw new InvalidOperationException("Невозможно получить ошибку из успешного результата.");
-                return _errors![0];
-            }
-        }
-
-        /// <summary>
-        /// Возвращает список всех ошибок. В случае успеха возвращается пустой список.
-        /// Никогда не возвращает <see langword="null"/>.
-        /// </summary>
-        public IReadOnlyList<Error> Errors => _errors != null ? _errors : Array.Empty<Error>();
-
-        private Result(T? value, List<Error>? errors)
-        {
-            _value = (errors == null || errors.Count == 0) ? value : default;
-            _errors = errors?.Count > 0 ? errors : null;
-        }
+        public IReadOnlyList<Error> Errors => _errors;
 
         /// <summary>
         /// Создаёт успешный результат с указанным значением.
         /// </summary>
-        /// <param name="value">Значение результата.</param>
-        /// <returns>Успешный экземпляр <see cref="Result{T}"/>.</returns>
-        public static Result<T> Success(T value) => new Result<T>(value, null);
+        public static Result<T> Success(T value) => new(value, Array.Empty<Error>());
 
         /// <summary>
         /// Создаёт неуспешный результат с одной ошибкой.
         /// </summary>
-        /// <param name="error">Ошибка, описывающая причину неудачи.</param>
-        /// <returns>Неуспешный экземпляр <see cref="Result{T}"/>.</returns>
-        public static Result<T> Failure(Error error) => new Result<T>(default, new List<Error> { error });
+        public static Result<T> Failure(Error error) => new(default, new[] { error });
 
         /// <summary>
         /// Создаёт неуспешный результат с несколькими ошибками.
         /// </summary>
-        /// <param name="errors">Список ошибок. Не может быть <see langword="null"/> или пустым.</param>
-        /// <returns>Неуспешный экземпляр <see cref="Result{T}"/>.</returns>
-        /// <exception cref="ArgumentException">Выбрасывается, если список ошибок пуст или равен <see langword="null"/>.</exception>
         public static Result<T> Failure(IEnumerable<Error> errors)
         {
-            var list = errors?.ToList();
-            if (list == null || list.Count == 0)
-                throw new ArgumentException("Список ошибок не может быть пустым или равным null.", nameof(errors));
-            return new Result<T>(default, list);
+            var array = errors?.ToArray() ?? throw new ArgumentNullException(nameof(errors));
+            if (array.Length == 0)
+                throw new ArgumentException("Должна быть хотя бы одна ошибка.", nameof(errors));
+            return new Result<T>(default, array);
         }
 
         /// <summary>
-        /// Создаёт неуспешный результат с ошибкой, заданной по коду, сообщению и типу.
+        /// Создаёт неуспешный результат с переменным числом ошибок.
         /// </summary>
-        /// <param name="code">Код ошибки.</param>
-        /// <param name="message">Описание ошибки.</param>
-        /// <param name="type">Тип ошибки. По умолчанию — <see cref="ErrorTypeEnum.Failure"/>.</param>
-        /// <returns>Неуспешный экземпляр <see cref="Result{T}"/>.</returns>
-        public static Result<T> Failure(string code, string message, ErrorTypeEnum type = ErrorTypeEnum.Failure)
-            => Failure(new Error(code, message, type));
-
-        /// <summary>
-        /// Неявное преобразование из <see cref="Error"/> в <see cref="Result{T}"/>.
-        /// </summary>
-        /// <param name="error">Ошибка.</param>
-        public static implicit operator Result<T>(Error error) => Failure(error);
-
-        /// <summary>
-        /// Неявное преобразование из <see cref="Result{T}"/> в <see cref="Result"/>.
-        /// Сохраняет все ошибки (в отличие от старой версии, которая брала только первую).
-        /// </summary>
-        /// <param name="result">Результат с типизированным значением.</param>
-        public static implicit operator Result(Result<T> result)
-            => result.IsSuccess ? Result.Success() : Result.Failure(result.Errors);
+        public static Result<T> Failure(params Error[] errors)
+        {
+            if (errors == null || errors.Length == 0)
+                throw new ArgumentException("Должна быть хотя бы одна ошибка.", nameof(errors));
+            return new Result<T>(default, errors);
+        }
     }
 }

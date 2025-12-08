@@ -1,47 +1,119 @@
-﻿using System;
+﻿#if NET6_0_OR_GREATER
+using Microsoft.AspNetCore.Mvc;
+using System.Net;
 
-namespace DT.Application.Result
+namespace DT.Application.Result;
+
+/// <summary>
+/// Вспомогательные методы для преобразования <see cref="Result"/> и <see cref="Result{T}"/>
+/// в объекты ответа ASP.NET Core с поддержкой локализации.
+/// </summary>
+public static class ResultExtensions
 {
     /// <summary>
-    /// Набор функциональных методов-расширений для работы с типами <see cref="Result"/> и <see cref="Result{T}"/>.
-    /// Включает такие операции, как сопоставление (<see cref="Map"/>), связывание (<see cref="Bind"/>),
-    /// обработка обоих исходов (<see cref="Match"/>) и условная проверка (<see cref="Ensure"/>).
-    /// Позволяет писать цепочки безопасных операций без явных проверок на ошибки.
+    /// Преобразует <see cref="Result"/> в <see cref="IActionResult"/>.
+    /// Локализация выполняется через переданный сервис.
     /// </summary>
-    public static class ResultExtensions
+    public static IActionResult ToActionResult(
+        this Result result,
+        ILocalizationService localization)
     {
-        // Map
-        public static Result<TOut> Map<TIn, TOut>(this Result<TIn> result, Func<TIn, TOut> mapper)
+        if (result.IsSuccess)
+            return new OkResult();
+
+        var details = CreateProblemDetails(result.Errors, localization);
+        return MapToActionResult(details, result.Errors[0].Type);
+    }
+
+    /// <summary>
+    /// Преобразует <see cref="Result{T}"/> в <see cref="IActionResult"/>.
+    /// </summary>
+    public static IActionResult ToActionResult<T>(
+        this Result<T> result,
+        ILocalizationService localization)
+    {
+        if (result.IsSuccess)
+            return new OkObjectResult(result.Value);
+
+        var details = CreateProblemDetails(result.Errors, localization);
+        return MapToActionResult(details, result.Errors[0].Type);
+    }
+
+    private static ProblemDetails CreateProblemDetails(
+        IReadOnlyList<Error> errors,
+        ILocalizationService localization)
+    {
+        var globalErrors = errors.Where(e => e.FieldName == null).ToList();
+        var fieldErrors = errors.Where(e => e.FieldName != null)
+            .ToDictionary(e => e.FieldName!, e => localization.GetLocalizedString(e.Code, e.Arguments));
+
+        string title;
+        string? detail = null;
+
+        if (globalErrors.Count > 0)
         {
-            return result.IsSuccess
-                ? Result<TOut>.Success(mapper(result.Value))
-                : Result<TOut>.Failure(result.Error);
+            var first = globalErrors[0];
+            title = first.Code;
+            detail = localization.GetLocalizedString(first.Code, first.Arguments);
+        }
+        else
+        {
+            title = "Произошли ошибки проверки.";
         }
 
-        // Bind / FlatMap
-        public static Result<TOut> Bind<TIn, TOut>(this Result<TIn> result, Func<TIn, Result<TOut>> binder)
+        var problem = new ProblemDetails
         {
-            return result.IsSuccess
-                ? binder(result.Value)
-                : Result<TOut>.Failure(result.Error);
+            Title = title,
+            Detail = detail,
+            Status = (int)MapErrorTypeToStatusCode(errors[0].Type),
+            Type = errors[0].Code
+        };
+
+        if (fieldErrors.Count > 0)
+        {
+            problem.Extensions["errors"] = fieldErrors;
         }
 
-        // Match (для обработки обоих случаев)
-        public static TOut Match<T, TOut>(this Result<T> result, Func<T, TOut> onSuccess, Func<Error, TOut> onFailure)
-        {
-            return result.IsSuccess ? onSuccess(result.Value) : onFailure(result.Error);
-        }
+        return problem;
+    }
 
-        public static TOut Match<TOut>(this Result result, Func<TOut> onSuccess, Func<Error, TOut> onFailure)
+    private static IActionResult MapToActionResult(ProblemDetails details, ErrorType type)
+    {
+        return type switch
         {
-            return result.IsSuccess ? onSuccess() : onFailure(result.Error);
-        }
+            ErrorType.Validation => new BadRequestObjectResult(details),
+            ErrorType.NotFound => new NotFoundObjectResult(details),
+            ErrorType.Conflict => new ConflictObjectResult(details),
+            ErrorType.Unauthorized => new UnauthorizedObjectResult(details),
+            ErrorType.Forbidden => new ForbidResult(),
+            _ => new BadRequestObjectResult(details)
+        };
+    }
 
-        // Ensure (валидация)
-        public static Result<T> Ensure<T>(this Result<T> result, Func<T, bool> predicate, Error errorIfInvalid)
+    private static HttpStatusCode MapErrorTypeToStatusCode(ErrorType type)
+    {
+        return type switch
         {
-            if (result.IsFailure) return result;
-            return predicate(result.Value) ? result : Result<T>.Failure(errorIfInvalid);
-        }
+            ErrorType.Validation => HttpStatusCode.BadRequest,
+            ErrorType.NotFound => HttpStatusCode.NotFound,
+            ErrorType.Conflict => HttpStatusCode.Conflict,
+            ErrorType.Unauthorized => HttpStatusCode.Unauthorized,
+            ErrorType.Forbidden => HttpStatusCode.Forbidden,
+            _ => HttpStatusCode.BadRequest
+        };
     }
 }
+
+/// <summary>
+/// Интерфейс для сервиса локализации, используемого при преобразовании ошибок в ответ API.
+/// Реализуется на уровне Presentation.
+/// </summary>
+public interface ILocalizationService
+{
+    /// <summary>
+    /// Возвращает локализованную строку по коду ошибки и аргументам.
+    /// </summary>
+    string GetLocalizedString(string errorCode, params object?[] args);
+}
+#endif
+

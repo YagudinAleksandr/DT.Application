@@ -3,6 +3,9 @@
   <Folder Name="/.github/workflows/">
     <File Path=".github/workflows/publish.yml" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DT.Application.Tests/DT.Application.Tests.csproj" Id="1c8a1867-aef1-4ae2-85d5-ec2eea5ee441" />
+  </Folder>
   <Folder Name="/Элементы решения/">
     <File Path="CHANGELOG.md" />
     <File Path="DigitTwin.png" />

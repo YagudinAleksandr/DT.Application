@@ -22,6 +22,11 @@
         public string[]? Sort { get; set; }
 
         /// <summary>
+        /// Допустимые поля сортировки
+        /// </summary>
+        public Dictionary<string, string> SortedFields { get; }
+
+        /// <summary>
         /// Валидатор параметров
         /// </summary>
         void Validate();

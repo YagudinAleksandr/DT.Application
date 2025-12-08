@@ -1,391 +1,259 @@
-﻿# DT.Application - библиотека содержащая инструментарий для работы сборки Application
+﻿# DT.Application — утилиты для слоя Application
 
 [![NuGet Version](https://img.shields.io/nuget/v/DT.Application.svg?logo=nuget)](https://www.nuget.org/packages/DT.Application)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/DT.Application.svg)](https://www.nuget.org/packages/DT.Application)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.md)
 
-## Описание
-Набор классов для реализации функционального подхода к обработке ошибок и результатам операций в C# приложениях.
+Небольшая библиотека для прикладного слоя .NET-приложений: единообразное представление ошибок и результатов, удобная интеграция с ASP.NET Core, пагинация, сортировка, контракт фильтров и вспомогательные сервисы запуска.
+
+Поддерживаемые таргеты: netstandard2.1, net6.0, net7.0, net8.0, net9.0.
+
+- В net6+ доступны интеграционные расширения для ASP.NET Core (ProblemDetails, IActionResult)
+- В netstandard2.1 — базовые типы (Result, Error, PagedResult и пр.)
 
 ## Установка
 
-Через NuGet
+Через NuGet:
+
 ```bash
 dotnet add package DT.Application
 ```
 
-Добавление ссылки на проект
+Либо прямой ProjectReference:
+
 ```xml
 <ProjectReference Include="..\DT.Application\DT.Application.csproj" />
 ```
 
-# DT.Application
+## Что внутри
 
-Набор классов для реализации функционального подхода к обработке ошибок и результатам операций в C# приложениях.
-
-## Содержание
-
-- [DT.Application](#result-pattern-library)
-  - [Содержание](#содержание)
-  - [Основные компоненты](#основные-компоненты)
-  - [Быстрый старт](#быстрый-старт)
-    - [Базовое использование](#базовое-использование)
-    - [Цепочки операций](#цепочки-операций)
-  - [Детальное описание компонентов](#детальное-описание-компонентов)
-    - [Error](#error)
-    - [Result](#result)
-    - [Result\<T\>](#resultt)
-    - [ResultExtensions](#resultextensions)
-    - [PagedResult\<T\>](#pagedresultt)
-    - [ResultFactory](#resultfactory)
-    - [Система фильтрации и сортировки](#система-фильтрации-и-сортировки)
-    - [Сервис для старта в фоновом режиме сервисов](#сервис-для-старта-в-фоновом-режиме-сервисов)
-  - [Примеры использования](#примеры-использования)
-    - [Валидация данных](#валидация-данных)
-    - [Работа с базой данных](#работа-с-базой-данных)
-    - [Пагинация с сортировкой](#пагинация-с-сортировкой)
-  - [Лучшие практики](#лучшие-практики)
-
-## Основные компоненты
-
-| Компонент | Назначение |
-|-----------|------------|
-| `Error` | Представляет ошибку с кодом, сообщением и типом |
-| `Result` | Результат операции без возвращаемого значения |
-| `Result<T>` | Результат операции с возвращаемым значением |
-| `ResultExtensions` | Методы расширения для функциональных операций |
-| `PagedResult<T>` | Результат постраничного запроса |
-| `IFilter` | Интерфейс для фильтрации данных |
-| `SortExtensions` | Утилиты для сортировки данных |
+- `Result`, `Result<T>` — компактные неизменяемые типы результата операции
+- `Error` — код ошибки, тип (Validation, NotFound и т.п.), аргументы локализации, опционально поле модели
+- `ResultExtensions` (net6+) — преобразование `Result/Result<T>` в `IActionResult` с ProblemDetails и локализацией
+- `PagedResult<T>` — пагинация коллекций/запросов
+- `SortExtensions`, `SortDescriptor` — безопасная сортировка по разрешённым полям, включая вложенные свойства
+- `IFilter` — контракт фильтров (пагинация + сортировка)
+- `ResultHelper` — создание неуспешных `Result/Result<T>` по типу во время выполнения (например, в pipeline-ах)
+- `IStartupRunnerService` — простая абстракция для запуска фоновых задач при старте приложения
 
 ## Быстрый старт
 
-### Базовое использование
+### Результат операции
 
 ```csharp
-// Успешная операция
-Result success = Result.Success();
+using DT.Application.Result;
 
-// Ошибка с кодом и сообщением
-Result failure = Result.Failure("VALIDATION_ERROR", "Invalid input data");
+Result ok = Result.Success();
 
-// Результат с значением
-Result<User> userResult = Result<User>.Success(user);
+var validationError = Error.WithField("Email", "Validation.Email.Invalid");
+Result fail = Result.Failure(validationError);
 
-// Результат с ошибкой
-Result<User> errorResult = Result<User>.Failure("NOT_FOUND", "User not found");
-```
+Result<int> valueOk = Result<int>.Success(42);
+Result<int> valueFail = Result<int>.Failure(Error.Global("User.NotFound", type: ErrorType.NotFound));
 
-### Цепочки операций
-```csharp
-public Result<UserDto> GetUserProfile(int userId)
+if (valueOk.IsSuccess)
 {
-    return GetUserById(userId)
-        .Ensure(user => user.IsActive, new Error("USER_INACTIVE", "User is inactive"))
-        .Map(user => new UserDto(user))
-        .Ensure(dto => dto.HasRequiredFields(), new Error("INVALID_PROFILE", "Profile incomplete"));
+    Console.WriteLine(valueOk.Value); // 42
 }
 ```
 
-## Детальное описание компонентов
-
-### Error
-Неизменяемая структура, представляющая ошибку:
+### Интеграция с ASP.NET Core (net6+)
 
 ```csharp
-// Создание ошибок
-var error = new Error("NOT_FOUND", "Resource not found", ErrorTypeEnum.NotFound);
+using DT.Application.Result;
+using Microsoft.AspNetCore.Mvc;
 
-// Неявное преобразование из кортежей
-Error error1 = ("VALIDATION_ERROR", "Invalid email");
-Error error2 = ("AUTH_ERROR", "Unauthorized", ErrorTypeEnum.Unauthorized);
-```
-
-Типы ошибок
-
-`Failure` - Общая ошибка
-
-`Validation` - Ошибка валидации
-
-`NotFound` - Ресурс не найден
-
-`Conflict` - Конфликт данных
-
-`Unauthorized` - Не авторизован
-
-`Forbidden` - Доступ запрещен
-
-### Result
-Результат операции без возвращаемого значения:
-
-```csharp
-csharp
-public Result ValidateUser(User user)
+// Реализация локализации сообщений об ошибках
+public class LocalizationService : ILocalizationService
 {
-    if (string.IsNullOrEmpty(user.Email))
-        return new Error("EMAIL_REQUIRED", "Email is required");
-    
-    if (user.Age < 18)
-        return new Error("AGE_INVALID", "User must be 18+", ErrorTypeEnum.Validation);
-    
-    return Result.Success();
-}
-```
-
-### Result<T>
-Типизированный результат операции:
-
-```csharp
-public Result<User> CreateUser(UserRequest request)
-{
-    if (await _userRepository.Exists(request.Email))
-        return Result<User>.Failure("USER_EXISTS", "User already exists", ErrorTypeEnum.Conflict);
-    
-    var user = User.Create(request);
-    await _userRepository.Add(user);
-    
-    return Result<User>.Success(user);
-}
-```
-
-### ResultExtensions
-Функциональные методы расширения:
-
-```csharp
-// Map - преобразование значения
-Result<UserDto> dtoResult = userResult.Map(user => new UserDto(user));
-
-// Bind - последовательное выполнение операций
-Result<Order> orderResult = userResult.Bind(user => CreateOrder(user));
-
-// Match - обработка обоих случаев
-string message = result.Match(
-    onSuccess: user => $"User: {user.Name}",
-    onFailure: error => $"Error: {error.Message}"
-);
-
-// Ensure - условная проверка
-Result<User> activeUser = userResult
-    .Ensure(user => user.IsActive, new Error("INACTIVE", "User is inactive"))
-    .Ensure(user => user.EmailConfirmed, new Error("UNCONFIRMED", "Email not confirmed"));
-```
-
-### PagedResult<T>
-Результат постраничного запроса:
-
-```csharp
-public PagedResult<User> GetUsers(int pageNumber, int pageSize)
-{
-    var query = _context.Users.Where(u => u.IsActive);
-    return PagedResult<User>.From(query, pageNumber, pageSize);
+    public string GetLocalizedString(string code, params object?[] args)
+        => code; // Подставьте вашу логику
 }
 
-// Использование
-var pagedResult = GetUsers(1, 10);
-Console.WriteLine($"Page {pagedResult.PageNumber} of {pagedResult.TotalPages}");
-Console.WriteLine($"Items: {pagedResult.Items.Count()} of {pagedResult.TotalCount}");
-```
-
-### Система фильтрации и сортировки
-```csharp
-public class UserFilter : IFilter
+[ApiController]
+[Route("api/users")]
+public class UsersController : ControllerBase
 {
-    public int PageSize { get; set; } = 10;
-    public int PageNumber { get; set; } = 1;
-    public string[]? Sort { get; set; }
-    
-    public void Validate()
+    private readonly ILocalizationService _loc = new LocalizationService();
+
+    [HttpGet("{id}")]
+    public IActionResult Get(int id)
     {
-        if (PageSize > 100) throw new ArgumentException("Page size too large");
-        if (PageNumber < 1) throw new ArgumentException("Invalid page number");
+        Result<UserDto> result = FindUser(id);
+        return result.ToActionResult(_loc); // OkObjectResult или ProblemDetails в зависимости от ошибки
     }
 }
+```
 
-// Применение сортировки
-var allowedFields = new Dictionary<string, string>
+Поведение маппинга ошибок:
+- ErrorType.Validation → 400 BadRequest (ProblemDetails + Extensions["errors"] с ошибками полей)
+- ErrorType.NotFound → 404 NotFound
+- ErrorType.Conflict → 409 Conflict
+- ErrorType.Unauthorized → 401 Unauthorized
+- ErrorType.Forbidden → 403 (Forbid)
+- Иначе → 400 BadRequest
+
+Глобальная ошибка (без FieldName) попадает в Title/Detail ProblemDetails, ошибки полей — в ProblemDetails.Extensions["errors"].
+
+## Пагинация
+
+```csharp
+using DT.Application.Result;
+
+IQueryable<User> query = db.Users.Where(u => u.IsActive);
+var page = 1;
+var size = 20;
+
+// PagedResult.From принимает IEnumerable<T>, но корректно работает и с IQueryable<T>
+var pageResult = PagedResult<User>.From(query, page, size);
+
+Console.WriteLine($"Page {pageResult.PageNumber}/{pageResult.TotalPages}. Items: {pageResult.Items.Count()} of {pageResult.TotalCount}");
+```
+
+Проекция в DTO:
+
+```csharp
+var usersPage = PagedResult<User>.From(query, page, size);
+var dtoPage = new PagedResult<UserDto>(
+    usersPage.Items.Select(u => new UserDto(u)),
+    usersPage.TotalCount,
+    usersPage.PageNumber,
+    usersPage.PageSize
+);
+```
+
+## Сортировка
+
+Сортировка строится из массива строк вида "field,dir", где dir ∈ {asc, desc}. Для безопасности используется маппинг разрешённых полей.
+
+```csharp
+using DT.Application.Extensions;
+
+var allowed = new Dictionary<string, string>
 {
-    ["name"] = "Name",
+    ["name"] = "FullName",
     ["created"] = "CreatedAt",
-    ["status"] = "Status"
+    ["city"] = "Address.City" // поддерживаются вложенные свойства
 };
 
-var sortDescriptors = SortExtensions.ParseSortParameters(allowedFields, filter.Sort);
-var sortedUsers = users.ApplySorting(sortDescriptors);
+string[]? sort = new[] { "created,desc", "name,asc" };
+var descriptors = SortExtensions.ParseSortParameters(allowed, sort);
+
+IQueryable<User> query = db.Users;
+query = query.ApplySorting(descriptors);
 ```
-### ResultFactory
+
+Если указано неизвестное свойство, будет выброшено InvalidOperationException.
+
+## Контракт фильтра
+
 ```csharp
-public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
-    where TRequest : notnull
-    where TResponse : class, IResult
+using DT.Application.Filters;
+using DT.Application.Extensions;
+using DT.Application.Result;
+
+public class UserFilter : IFilter
 {
-    private readonly IEnumerable<IValidator<TRequest>> _validators;
+    public int PageSize { get; set; } = 20;
+    public int PageNumber { get; set; } = 1;
+    public string[]? Sort { get; set; }
 
-    public ValidationBehavior(IEnumerable<IValidator<TRequest>> validators)
+    public Dictionary<string, string> SortedFields { get; } = new()
     {
-        _validators = validators;
-    }
+        ["name"] = "FullName",
+        ["created"] = "CreatedAt",
+        ["status"] = "Status"
+    };
 
-    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
+    public void Validate()
     {
-        if (!_validators.Any())
-            return await next();
-
-        var context = new ValidationContext<TRequest>(request);
-        var validationResults = await Task.WhenAll(
-            _validators.Select(v => v.ValidateAsync(context, ct))
-        );
-
-        var failures = validationResults
-            .Where(r => !r.IsValid)
-            .SelectMany(r => r.Errors)
-            .ToList();
-
-        if (failures.Any())
-        {
-            var errors = failures.Select(failure => new Error(
-                failure.ErrorCode ?? "Validation",
-                failure.ErrorMessage ?? "Ошибка валидации"
-            )).ToArray();
-
-            // Создаём Result.Failure через рефлексию или фабрику
-            return ResultFactory.CreateFailure<TResponse>(errors);
-        }
-
-        return await next();
+        if (PageSize < 1 || PageSize > 100) throw new ArgumentOutOfRangeException(nameof(PageSize));
+        if (PageNumber < 1) throw new ArgumentOutOfRangeException(nameof(PageNumber));
     }
+}
+
+public PagedResult<UserDto> GetUsers(UserFilter f)
+{
+    f.Validate();
+
+    IQueryable<User> query = db.Users;
+
+    var sortDesc = SortExtensions.ParseSortParameters(f.SortedFields, f.Sort);
+    query = query.ApplySorting(sortDesc);
+
+    var page = PagedResult<User>.From(query, f.PageNumber, f.PageSize);
+    return new PagedResult<UserDto>(
+        page.Items.Select(u => new UserDto(u)),
+        page.TotalCount, page.PageNumber, page.PageSize
+    );
 }
 ```
 
-### Сервис для старта в фоновом режиме сервисов
+## Ошибки (Error)
+
 ```csharp
-public class TestService : IStartupRunnerService
+using DT.Application.Result;
+
+// Глобальная ошибка (без привязки к полю)
+var e1 = Error.Global("Organization.Closed", type: ErrorType.Failure);
+
+// Ошибка поля (тип автоматически = Validation)
+var e2 = Error.WithField("Email", "Validation.Email.Invalid");
+
+// Результаты
+Result r1 = Result.Failure(e1);
+Result<User> r2 = Result<User>.Failure(e1, e2);
+```
+
+Свойства Error:
+- Code — ключ локализации/идентификатор
+- Arguments — аргументы для локализованного сообщения
+- Type — ErrorType (Validation/NotFound/Conflict/Unauthorized/Forbidden/Failure)
+- FieldName — имя поля или null для глобальных ошибок
+
+## Вспомогательное: ResultHelper
+
+Создание неуспешного результата по типу во время выполнения (например, в pipeline поведения валидации):
+
+```csharp
+using DT.Application.Result;
+
+Type resultType = typeof(Result<MyResponse>);
+var errors = new[] { Error.WithField("Name", "Validation.Required") };
+object failure = ResultHelper.CreateFailure(resultType, errors);
+// failure имеет тип Result<MyResponse>
+```
+
+## Сервис запуска задач при старте
+
+```csharp
+using DT.Application.Services;
+using Microsoft.Extensions.Hosting;
+
+public class SomeStartupTask : IStartupRunnerService
 {
     public async Task ExecuteAsync(CancellationToken ct = default)
     {
-        await Task.ComplitedTask();
+        // Ваша инициализация
+        await Task.CompletedTask;
     }
 }
-```
 
-Создать HostedService
-```csharp
 public class StartupRunnerHostedService : IHostedService
 {
-    private readonly IEnumerable<IStartupRunnerService> _startupServices;
+    private readonly IEnumerable<IStartupRunnerService> _services;
+    public StartupRunnerHostedService(IEnumerable<IStartupRunnerService> services) => _services = services;
 
-    public StartupRunnerHostedService(IEnumerable<IStartupRunnerService> startupServices)
+    public async Task StartAsync(CancellationToken ct)
     {
-        _startupServices = startupServices;
+        foreach (var s in _services)
+            await s.ExecuteAsync(ct);
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
-    {
-        foreach (var service in _startupServices)
-        {
-            await service.ExecuteAsync(cancellationToken);
-        }
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task StopAsync(CancellationToken ct) => Task.CompletedTask;
 }
 ```
 
-Зарегистрировать в DI
-```chsrp
-builder.Services.AddHostedService<StartupRunnerHostedService>();
-```
+## Лицензия
 
-## Примеры использования
-
-### Валидация данных
-```csharp
-public Result<User> RegisterUser(RegisterRequest request)
-{
-    return ValidateEmail(request.Email)
-        .Bind(_ => ValidatePassword(request.Password))
-        .Bind(_ => CheckEmailUnique(request.Email))
-        .Map(_ => User.Create(request))
-        .Bind(user => SaveUser(user));
-}
-
-private Result ValidateEmail(string email)
-{
-    if (string.IsNullOrEmpty(email))
-        return new Error("EMAIL_EMPTY", "Email is required");
-    
-    if (!email.Contains("@"))
-        return new Error("EMAIL_INVALID", "Invalid email format");
-    
-    return Result.Success();
-}
-```
-
-### Работа с базой данных
-```csharp
-public async Task<Result<User>> GetUserAsync(int id)
-{
-    var user = await _context.Users.FindAsync(id);
-    return user != null 
-        ? Result<User>.Success(user)
-        : Result<User>.Failure("USER_NOT_FOUND", "User not found", ErrorTypeEnum.NotFound);
-}
-
-public async Task<Result> UpdateUserAsync(int id, UserUpdate update)
-{
-    return await GetUserAsync(id)
-        .Ensure(user => user.CanBeUpdated(), new Error("UPDATE_FORBIDDEN", "Cannot update user"))
-        .Bind(user => ApplyUpdate(user, update))
-        .Bind(user => SaveUserAsync(user));
-}
-```
-
-### Пагинация с сортировкой
-```csharp
-public PagedResult<UserDto> GetUsers(UserFilter filter)
-{
-    filter.Validate();
-    
-    var query = _context.Users.AsQueryable();
-    
-    // Применяем сортировку
-    var sortFields = new Dictionary<string, string>
-    {
-        ["name"] = "FullName",
-        ["email"] = "Email",
-        ["created"] = "CreatedDate"
-    };
-    
-    var sortDescriptors = SortExtensions.ParseSortParameters(sortFields, filter.Sort);
-    query = query.ApplySorting(sortDescriptors);
-    
-    // Применяем пагинацию
-    var pagedResult = PagedResult<User>.From(query, filter.PageNumber, filter.PageSize);
-    
-    // Преобразуем в DTO
-    return pagedResult.Map(users => users.Select(u => new UserDto(u)));
-}
-```
-
-## Лучшие практики
-1. Всегда проверяйте IsSuccess/IsFailure перед доступом к Value
-
-2. Используйте Ensure для валидации вместо if-else блоков
-
-3. Применяйте Bind для последовательных операций, которые могут завершиться ошибкой
-
-4. Используйте Map для преобразования успешных результатов
-
-5. Группируйте связанные ошибки в одном Result вместо исключений
-
-6. Определите доменные ошибки как константы для повторного использования
-```csharp
-public static class DomainErrors
-{
-    public static Error UserNotFound => new("USER_NOT_FOUND", "User not found", ErrorTypeEnum.NotFound);
-    public static Error EmailAlreadyExists => new("EMAIL_EXISTS", "Email already registered", ErrorTypeEnum.Conflict);
-    public static Error InvalidCredentials => new("INVALID_CREDENTIALS", "Invalid credentials", ErrorTypeEnum.Unauthorized);
-}
-
-// Использование
-return Result<User>.Failure(DomainErrors.UserNotFound);
-```
+MIT — см. LICENSE.md.
