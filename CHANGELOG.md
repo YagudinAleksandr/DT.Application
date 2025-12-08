@@ -1,5 +1,19 @@
 ﻿# CHANGELOG
 
+## [2.0.0](https://github.com/YagudinAleksandr/DT.Application/tree/2.0.0) - 08.12.2025
+
+### Added
+- [Добавлены новые расширения для Result](https://github.com/YagudinAleksandr/DT.Application/commit/ae0b08ced0fb09a072e5b43d8de9772845042250)
+- [Добавлен словарь поддерживаемых полей сортировки](https://github.com/YagudinAleksandr/DT.Application/commit/06b9f0b69db8c188aa0b4b1b5bcb1b014068e3ca)
+
+### Fixed
+- [Переименован класс с типом ошибок](https://github.com/YagudinAleksandr/DT.Application/commit/fffc2710fe2276a4e4add1e119d3d14daff92d1a)
+- [Исправлены Error, Result и ResultT](https://github.com/YagudinAleksandr/DT.Application/commit/540873f3ca491728f8c57dd2bad2fca326e7d982)
+
+### Deleted
+- [Удалены интерфейс IResult и фабрика ResultFactory](https://github.com/YagudinAleksandr/DT.Application/commit/389509e3e11dbe8e45c86d64ac0de4ec0e62cead)
+- [Удалены лишние ссылки](https://github.com/YagudinAleksandr/DT.Application/commit/a1bc428a25c748949c56470c5aec1bf6781131c0)
+
 ## [1.2.4](https://github.com/YagudinAleksandr/DT.Application/tree/1.2.5) - 07.12.2025
 
 ### Fixed

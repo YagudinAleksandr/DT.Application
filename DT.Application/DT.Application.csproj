@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>netstandard2.1</TargetFramework>
-		<LangVersion>9.0</LangVersion>
+		<TargetFrameworks>netstandard2.1;net6.0;net7.0;net8.0;net9.0</TargetFrameworks>
+		<LangVersion>latest</LangVersion>
 		<Nullable>enable</Nullable>
-		<!-- Генерация XML-документации -->
+		<ImplicitUsings>enable</ImplicitUsings>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);1591</NoWarn>
-		<Version>1.2.5</Version>
+		<Version>2.0.0</Version>
 
 		<Authors>Aleksandr Yagudin</Authors>
 		<Description>Common files for application. Pattern ResultT.</Description>
@@ -16,7 +16,7 @@
 		<RepositoryUrl>https://github.com/YagudinAleksandr/DT.Application</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>ddd;result;application-assembly;</PackageTags>
-		<PackageReleaseNotes>Refactoring result factory</PackageReleaseNotes>
+		<PackageReleaseNotes>New version of library. Add new extensions, change filter</PackageReleaseNotes>
 		<Copyright>Copyright 2025 Aleksandr Yagudin</Copyright>
 		<NeutralLanguage>ru</NeutralLanguage>
 
@@ -26,9 +26,14 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<None Include="..\README.md" Pack="true" PackagePath="\" />
-		<None Include="..\DigitTwin.png" Pack="true" PackagePath="\" />
-		<None Include="..\LICENSE.md" Pack="true" PackagePath="\" />
+		<None Include="..\README.md" Pack="true" PackagePath="" />
+		<None Include="..\DigitTwin.png" Pack="true" PackagePath="" />
+		<None Include="..\LICENSE.md" Pack="true" PackagePath="" />
+	</ItemGroup>
+
+	<!-- ASP.NET Core доступен только в .NET 6+ -->
+	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0' OR '$(TargetFramework)' == 'net7.0' OR '$(TargetFramework)' == 'net8.0' OR '$(TargetFramework)' == 'net9.0'">
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
 
 </Project>
