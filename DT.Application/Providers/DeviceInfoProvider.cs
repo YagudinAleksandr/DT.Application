@@ -22,6 +22,7 @@ namespace DT.Application.Providers
         {
             _httpContextAccessor = httpContextAccessor;
         }
+        #endregion
 
         /// <inheritdoc/>
         public string GetUserAgent()
