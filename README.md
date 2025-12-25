@@ -8,7 +8,7 @@
 
 Поддерживаемые таргеты: netstandard2.1, net6.0, net7.0, net8.0, net9.0.
 
-- В net6+ доступны интеграционные расширения для ASP.NET Core (ProblemDetails, IActionResult)
+- В net6+ доступны интеграционные расширения для ASP.NET Core (ProblemDetails, IActionResult, RequestLanguageProvider, ClientIpProvider, DeviceInfoProvider)
 - В netstandard2.1 — базовые типы (Result, Error, PagedResult и пр.)
 
 ## Установка
@@ -222,6 +222,47 @@ Type resultType = typeof(Result<MyResponse>);
 var errors = new[] { Error.WithField("Name", "Validation.Required") };
 object failure = ResultHelper.CreateFailure(resultType, errors);
 // failure имеет тип Result<MyResponse>
+```
+
+## Вспомогательное: Провайдеры
+Подключение в DI
+```csharp
+// Обязательно добавить IHttpContextAccessor
+builder.Services.AddHttpContextAccessor();
+
+// Регистрация провайдеров как scoped (на каждый запрос)
+builder.Services.AddScoped<IRequestLanguageProvider, RequestLanguageProvider>();
+builder.Services.AddScoped<IClientIpProvider, ClientIpProvider>();
+builder.Services.AddScoped<IDeviceInfoProvider, DeviceInfoProvider>();
+```
+
+Использование в сервисах
+```csharp
+public class SomeApplicationService
+{
+    private readonly IRequestLanguageProvider _languageProvider;
+    private readonly IClientIpProvider _ipProvider;
+    private readonly IDeviceInfoProvider _deviceProvider;
+
+    public SomeApplicationService(
+        IRequestLanguageProvider languageProvider,
+        IClientIpProvider ipProvider,
+        IDeviceInfoProvider deviceProvider)
+    {
+        _languageProvider = languageProvider;
+        _ipProvider = ipProvider;
+        _deviceProvider = deviceProvider;
+    }
+
+    public async Task DoSomething()
+    {
+        var lang = _languageProvider.GetLanguage();
+        var ip = _ipProvider.GetClientIp();
+        var userAgent = _deviceProvider.GetUserAgent();
+
+        // Используйте lang, ip, userAgent как нужно (например, для локализации или логгирования)
+    }
+}
 ```
 
 ## Сервис запуска задач при старте
