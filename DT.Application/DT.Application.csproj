@@ -16,7 +16,7 @@
 		<RepositoryUrl>https://github.com/YagudinAleksandr/DT.Application</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>ddd;result;application-assembly;</PackageTags>
-		<PackageReleaseNotes>New version of library. Add new extensions, change filter</PackageReleaseNotes>
+		<PackageReleaseNotes>Add providers</PackageReleaseNotes>
 		<Copyright>Copyright 2025 Aleksandr Yagudin</Copyright>
 		<NeutralLanguage>ru</NeutralLanguage>
 
