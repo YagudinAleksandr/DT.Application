@@ -16,7 +16,7 @@ namespace DT.Application.Providers
     }
 
     /// <inheritdoc cref="IClientIpProvider"/>
-    internal class ClientIpProvider : IClientIpProvider
+    public class ClientIpProvider : IClientIpProvider
     {
         #region CTOR
         /// <inheritdoc cref="IHttpContextAccessor"/>
